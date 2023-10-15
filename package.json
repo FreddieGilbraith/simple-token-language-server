@@ -4,10 +4,7 @@
   "license": "MIT",
   "version": "1.5.0",
   "categories": [],
-  "keywords": [
-    "language-server",
-    "tower-lsp"
-  ],
+  "keywords": ["language-server", "tower-lsp"],
   "repository": {
     "url": "https://github.com/IWANABETHATGUY/tower-lsp-boilerplate"
   },
@@ -15,17 +12,13 @@
     "vscode": "^1.66.0"
   },
   "enabledApiProposals": [],
-  "activationEvents": [
-    "onLanguage:nrs"
-  ],
+  "activationEvents": ["onLanguage:nrs"],
   "main": "./dist/extension.js",
   "contributes": {
     "languages": [
       {
         "id": "nrs",
-        "extensions": [
-          ".nrs"
-        ]
+        "extensions": [".nrs"]
       }
     ],
     "configuration": {
@@ -35,16 +28,8 @@
         "nrs-language-server.trace.server": {
           "type": "string",
           "scope": "window",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "enumDescriptions": [
-            "No traces",
-            "Error only",
-            "Full log"
-          ],
+          "enum": ["off", "messages", "verbose"],
+          "enumDescriptions": ["No traces", "Error only", "Full log"],
           "default": "off",
           "description": "Traces the communication between VS Code and the language server."
         }
@@ -52,7 +37,7 @@
     }
   },
   "scripts": {
-    "postinstall": "cd client && pnpm i",
+    "postinstall": "cd client && npm i",
     "vscode:prepublish": "npm run esbuild-base -- --minify",
     "esbuild-base": "esbuild ./client/src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
     "esbuild": "npm run esbuild-base -- --sourcemap",

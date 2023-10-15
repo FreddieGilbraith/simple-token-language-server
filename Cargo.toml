@@ -1,20 +1,17 @@
 [package]
-name = "nrs-language-server"
+name = "simple-token-language-server"
 version = "0.1.0"
 edition = "2021"
+description = "A simple LSP that tokenizes all open files and provides all words as completions. Useful for prose, of languages that use strings like enums (eg: typescript, javascript)"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chumsky = "0.8.0"
-env_logger = "0.9.0"
 ropey = "1.5.0"
 serde_json = "1.0.78"
 tokio = { version = "1.17.0", features = ["full"] }
 tower-lsp = { version = "0.19.0", features = ["proposed"]}
 serde = { version = "1.0", features = ["derive"] }
-dashmap = "5.1.0"
-log = "0.4.14"
-im-rc = "15.0.0"
-
-
+regex = "1.10.0"
+itertools = "0.11.0"
