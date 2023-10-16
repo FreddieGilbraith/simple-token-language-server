@@ -2,8 +2,11 @@
 name = "simple-token-language-server"
 version = "0.1.0"
 edition = "2021"
-description = "A simple LSP that tokenizes all open files and provides all words as completions. Useful for prose, of languages that use strings like enums (eg: typescript, javascript)"
 license = "MIT"
+description = """
+A simple LSP that tokenizes all open files and provides all words as completions.
+Useful for prose, of languages that use strings like enums (eg: typescript, javascript)
+"""
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -78,26 +78,43 @@ impl State {
         String::from_utf8(v).unwrap()
     }
 
-    pub fn get_completions(&self) -> Vec<CompletionItem> {
+    pub fn get_completions(
+        &self,
+        query_from_url: &Url,
+        position: &Position,
+    ) -> Vec<CompletionItem> {
         let mut tokens = HashSet::new();
         let mut completion_items = vec![];
         let mut word_buffer = String::new();
 
-        for (url, rope) in self.files.iter() {
-            for char in rope.chars() {
-                if char.is_alphanumeric() {
-                    word_buffer.push(char)
-                }
+        let query_line = usize::try_from(position.line).unwrap();
 
-                if char.is_whitespace() {
-                    if tokens.insert(word_buffer.clone()) {
-                        completion_items.push(CompletionItem::new_simple(
-                            word_buffer.clone(),
-                            url.to_string(),
-                        ));
+        for (url, rope) in self.files.iter() {
+            let relative_url = url
+                .make_relative(&query_from_url)
+                .unwrap_or_else(|| url.to_string());
+
+            for (line_number, line) in rope.lines().enumerate() {
+                for (char) in line.chars() {
+                    if line_number == query_line {
+                        word_buffer.clear();
+                        continue;
                     }
 
-                    word_buffer.clear();
+                    if char.is_alphanumeric() {
+                        word_buffer.push(char)
+                    } else {
+                        if word_buffer.len() > 0 {
+                            if tokens.insert(word_buffer.clone()) {
+                                completion_items.push(CompletionItem::new_simple(
+                                    word_buffer.clone(),
+                                    relative_url.as_str().to_owned(),
+                                ));
+                            }
+
+                            word_buffer.clear();
+                        }
+                    }
                 }
             }
         }
@@ -127,12 +144,17 @@ impl LanguageServer for Backend {
             .await;
     }
 
-    async fn completion(&self, _: CompletionParams) -> Result<Option<CompletionResponse>> {
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         self.client
             .show_message(MessageType::INFO, "completion".to_string())
             .await;
 
-        let matches = self.state.read().unwrap().get_completions();
+        let TextDocumentPositionParams {
+            position,
+            text_document: TextDocumentIdentifier { uri },
+        } = params.text_document_position;
+
+        let matches = self.state.read().unwrap().get_completions(&uri, &position);
 
         Ok(Some(CompletionResponse::Array(matches)))
     }
