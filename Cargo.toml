@@ -3,6 +3,10 @@ name = "simple-token-language-server"
 version = "0.0.1"
 edition = "2021"
 license = "MIT"
+authors = ["Freddie Gilbraith"]
+repo = "https://github.com/FreddieGilbraith/simple-token-language-server"
+homepage = "https://github.com/FreddieGilbraith/simple-token-language-server"
+readme = "README.md"
 description = """
 A simple LSP that tokenizes all open files and provides all words as completions.
 Useful for prose, of languages that use strings like enums (eg: typescript, javascript)
