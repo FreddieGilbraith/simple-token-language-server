@@ -1,10 +1,4 @@
-foo;
-baz;
-jifoojfooj;
-chungus;
-chungus;
-chungus;
-baz;
 bar;
-freddie;
-freddie;
+other;
+chungus;
+chungus;

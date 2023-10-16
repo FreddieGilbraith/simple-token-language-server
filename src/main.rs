@@ -7,14 +7,15 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-#[derive(Debug, Hash)]
-struct Id {
-    id: u64,
+#[derive(Debug)]
+struct SourceFile {
+    rope: Rope,
+    tokens: HashSet<String>,
 }
 
 #[derive(Debug)]
 struct State {
-    files: HashMap<Url, Rope>,
+    files: HashMap<Url, SourceFile>,
 }
 
 #[derive(Debug)]
@@ -32,6 +33,64 @@ impl Backend {
     }
 }
 
+impl SourceFile {
+    pub fn new(url: &Url) -> std::io::Result<Self> {
+        let rope = ropey::Rope::from_reader(File::open(url.path())?)?;
+        let tokens = HashSet::new();
+
+        let mut me = Self { rope, tokens };
+        me.tokenize(None);
+
+        Ok(me)
+    }
+
+    pub fn apply_change(&mut self, change: &TextDocumentContentChangeEvent) -> () {
+        match change.range {
+            Some(Range { start, end }) => {
+                let start_index =
+                    self.rope.line_to_char(start.line as usize) + start.character as usize;
+                let end_index =
+                    self.rope.line_to_char(end.line as usize) + (end.character as usize);
+
+                self.rope.remove(start_index..end_index);
+                self.rope.insert(start_index, change.text.as_str());
+            }
+
+            None => {
+                self.rope = ropey::Rope::from_str(change.text.as_str());
+            }
+        }
+
+        self.tokenize(None)
+    }
+
+    pub fn tokenize(&mut self, exclude_line: Option<usize>) -> () {
+        let mut tokens: HashSet<String> = HashSet::new();
+        let mut word_buffer = String::new();
+
+        for (line_number, line) in self.rope.lines().enumerate() {
+            if Some(line_number) == exclude_line {
+                word_buffer.clear();
+                continue;
+            }
+
+            for char in line.chars() {
+                if char.is_alphanumeric() {
+                    word_buffer.push(char)
+                } else {
+                    if word_buffer.len() > 0 {
+                        tokens.insert(word_buffer.clone());
+
+                        word_buffer.clear();
+                    }
+                }
+            }
+        }
+
+        self.tokens = tokens;
+    }
+}
+
 impl State {
     pub fn new() -> Self {
         Self {
@@ -40,81 +99,58 @@ impl State {
     }
 
     pub fn open_file(&mut self, url: Url) -> std::io::Result<()> {
-        let text = ropey::Rope::from_reader(File::open(url.path())?)?;
-
-        self.files.insert(url, text);
+        let src_file = SourceFile::new(&url)?;
+        self.files.insert(url, src_file);
 
         Ok(())
     }
 
     pub fn apply_change(&mut self, url: &Url, change: &TextDocumentContentChangeEvent) -> () {
-        let rope = self.files.get_mut(url);
+        let src_file = self.files.get_mut(url);
 
-        match (change.range, rope) {
-            (Some(Range { start, end }), Some(rope)) => {
-                let start_index = rope.line_to_char(start.line as usize) + start.character as usize;
-                let end_index = rope.line_to_char(end.line as usize) + (end.character as usize);
-
-                rope.remove(start_index..end_index);
-                rope.insert(start_index, change.text.as_str());
-
-                ()
-            }
-
-            (None, _) => {
-                let text = Rope::from_str(change.text.as_str());
-                self.files.insert(url.clone(), text);
-                ()
-            }
-
-            _ => (),
+        if let Some(src_file) = src_file {
+            src_file.apply_change(&change);
         }
     }
 
-    #[allow(dead_code)]
-    pub fn get_file_lines(&self, url: &Url) -> String {
-        let mut v = Vec::new();
-        self.files.get(&url).unwrap().write_to(&mut v).unwrap();
-        String::from_utf8(v).unwrap()
-    }
-
     pub fn get_completions(
-        &self,
+        &mut self,
         query_from_url: &Url,
         position: &Position,
     ) -> Vec<CompletionItem> {
         let mut tokens = HashSet::new();
         let mut completion_items = vec![];
-        let mut word_buffer = String::new();
 
         let query_line = usize::try_from(position.line).unwrap();
 
-        for (url, rope) in self.files.iter() {
+        if let Some(current_src_file) = self.files.get_mut(query_from_url) {
+            current_src_file.tokenize(Some(query_line));
+        }
+
+        if let Some(current_src_file) = self.files.get(query_from_url) {
+            for token in current_src_file.tokens.iter() {
+                if tokens.insert(token) {
+                    completion_items
+                        .push(CompletionItem::new_simple(token.clone(), ".".to_owned()));
+                }
+            }
+        }
+
+        for (url, src_file) in self.files.iter() {
+            if url == query_from_url {
+                continue;
+            }
+
             let relative_url = url
                 .make_relative(&query_from_url)
                 .unwrap_or_else(|| url.to_string());
 
-            for (line_number, line) in rope.lines().enumerate() {
-                for (char) in line.chars() {
-                    if line_number == query_line {
-                        word_buffer.clear();
-                        continue;
-                    }
-
-                    if char.is_alphanumeric() {
-                        word_buffer.push(char)
-                    } else {
-                        if word_buffer.len() > 0 {
-                            if tokens.insert(word_buffer.clone()) {
-                                completion_items.push(CompletionItem::new_simple(
-                                    word_buffer.clone(),
-                                    relative_url.as_str().to_owned(),
-                                ));
-                            }
-
-                            word_buffer.clear();
-                        }
-                    }
+            for token in src_file.tokens.iter() {
+                if tokens.insert(token) {
+                    completion_items.push(CompletionItem::new_simple(
+                        token.clone(),
+                        relative_url.as_str().to_owned(),
+                    ));
                 }
             }
         }
@@ -154,7 +190,7 @@ impl LanguageServer for Backend {
             text_document: TextDocumentIdentifier { uri },
         } = params.text_document_position;
 
-        let matches = self.state.read().unwrap().get_completions(&uri, &position);
+        let matches = self.state.write().unwrap().get_completions(&uri, &position);
 
         Ok(Some(CompletionResponse::Array(matches)))
     }
