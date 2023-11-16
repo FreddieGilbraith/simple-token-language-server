@@ -1,0 +1,3 @@
+[language-server.simple-token]
+# command = "simple-token-language-server"
+command = "/Users/freddie/Documents/simple-token-language-server/target/debug/simple-token-language-server"
