@@ -40,8 +40,11 @@ impl SourceFile {
         self.tokenize(None)
     }
 
-    pub fn tokenize(&mut self, exclude_line: Option<usize>) -> () {
-        let mut tokens: HashSet<String> = HashSet::new();
+    pub fn words(
+        &self,
+        exclude_line: Option<usize>,
+    ) -> Vec<(std::string::String, Position, Position)> {
+        let mut words = Vec::new();
         let mut word_buffer = String::new();
 
         for (line_number, line) in self.rope.lines().enumerate() {
@@ -50,12 +53,19 @@ impl SourceFile {
                 continue;
             }
 
-            for char in line.chars() {
+            for (char_number, char) in line.chars().enumerate() {
                 if char.is_alphanumeric() {
                     word_buffer.push(char)
                 } else {
                     if word_buffer.len() > 0 {
-                        tokens.insert(word_buffer.clone());
+                        words.push((
+                            word_buffer.clone(),
+                            Position::new(
+                                line_number as u32,
+                                (char_number - word_buffer.len()) as u32,
+                            ),
+                            Position::new(line_number as u32, char_number as u32),
+                        ));
 
                         word_buffer.clear();
                     }
@@ -63,7 +73,15 @@ impl SourceFile {
             }
         }
 
-        self.tokens = tokens;
+        words
+    }
+
+    pub fn tokenize(&mut self, exclude_line: Option<usize>) -> () {
+        self.tokens = self
+            .words(exclude_line)
+            .iter()
+            .map(|(word, _, _)| word.into())
+            .collect();
     }
 
     pub fn tokens(&self) -> std::collections::hash_set::Iter<'_, std::string::String> {

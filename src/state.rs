@@ -74,4 +74,15 @@ impl State {
 
         completion_items
     }
+
+    pub fn words(
+        &self,
+        url: &Url,
+        exclude_line: Option<usize>,
+    ) -> Vec<(String, Position, Position)> {
+        self.files
+            .get(url)
+            .map(|sf| SourceFile::words(sf, exclude_line))
+            .unwrap_or_else(|| vec![])
+    }
 }

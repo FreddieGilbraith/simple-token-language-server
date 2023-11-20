@@ -476,6 +476,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "prose-lsp"
+version = "0.0.1"
+dependencies = [
+ "clap",
+ "itertools",
+ "regex",
+ "ropey",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-lsp",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -593,20 +607,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8229b473baa5980ac72ef434c4415e70c4b5e71b423043adb4ba059f89c99a1"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "simple-token-language-server"
-version = "0.0.1"
-dependencies = [
- "clap",
- "itertools",
- "regex",
- "ropey",
- "serde",
- "serde_json",
- "tokio",
- "tower-lsp",
 ]
 
 [[package]]
