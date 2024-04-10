@@ -9,6 +9,7 @@ use tower_lsp::{Client, LanguageServer};
 pub struct Backend {
     client: Client,
     spell: Option<Spell>,
+
     state: RwLock<State>,
 }
 
@@ -71,15 +72,7 @@ impl LanguageServer for Backend {
         }
 
         if let Some(spell) = &self.spell {
-            let mut spelling_errors = vec![Diagnostic::new(
-                Range::new(Position::new(0, 0), Position::new(0, 5)),
-                Some(DiagnosticSeverity::ERROR),
-                None,
-                Some("test".into()),
-                "Woah!!!".into(),
-                None,
-                None,
-            )];
+            let mut spelling_errors = vec![];
 
             for (word, start, end) in self.state.read().unwrap().words(&uri, None).iter() {
                 if !spell.is_valid(&word.to_lowercase()) {
