@@ -28,10 +28,38 @@ impl Spell {
     }
 
     pub fn is_valid(&self, word: &str) -> bool {
+        if word.len() < 4 {
+            return true;
+        }
+
         if self.multiple_capitals.is_match(word) {
             return true;
         }
 
-        self.words.contains(word)
+        let word = word.to_lowercase();
+
+        if word.chars().nth(word.len() - 1) == Some('s') {
+            let unpluraled = String::from(&word[0..word.len() - 1]);
+            self.words.contains(&word) || self.words.contains(&unpluraled)
+        } else {
+            self.words.contains(&word)
+        }
+    }
+
+    pub fn get_suggestions(&self, query: &str) -> Vec<(u32, String)> {
+        use stringmetrics::levenshtein;
+
+        let mut suggs = vec![];
+        let thresh = ((query.len() as u32) as f32).sqrt() as u32;
+
+        for word in self.words.iter() {
+            let dist = levenshtein(query, word);
+            if dist < thresh {
+                suggs.push((dist, word.clone()))
+            }
+        }
+
+        suggs.sort_by(|(a, _), (b, _)| a.partial_cmp(&b).unwrap());
+        suggs
     }
 }

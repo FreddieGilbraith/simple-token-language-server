@@ -1,9 +1,10 @@
 [language-server.simple-token]
 # command = "simple-token-language-server"
-command = "/Users/freddie/Documents/prose-lsp/target/debug/simple-token-language-server"
+command = "/Users/freddie/Documents/prose-lsp/target/debug/prose-lsp"
 args= ["--spell"]
 
 
 [[language]]
 name="rust"
-language-servers = [ "rust-analyzer" , "simple-token"]
+language-servers = [ "simple-token",  "rust-analyzer" , ]
+# language-servers = [ "simple-token" ]
